@@ -1,0 +1,114 @@
+<html>
+
+<head>
+    <style>.example{padding:10px;border:1px solid #ccc}#drop_zone{border:2px dashed #bbb;-moz-border-radius:5px;-webkit-border-radius:5px;border-radius:5px;padding:25px;text-align:center;font: 20pt bold 'Vollkorn';color:#bbb}.thumb{height:75px;border:1px solid #000;margin:10px 5px 0 0}#progress_bar{margin:10px 0;padding:3px;border:1px solid #000;font-size:14px;clear:both;opacity:0;-o-transition:opacity 1s linear;-moz-transition:opacity 1s linear;-webkit-transition:opacity 1s linear;-ms-transition:opacity 1s linear}#progress_bar.loading{opacity:1.0}#progress_bar .percent{background-color:#9cf;height:auto;width:0}#byte_content{margin:5px 0;max-height:100px;overflow-y:auto;overflow-x:hidden}#byte_range{margin-top:5px}</style>
+</head>
+
+<body>
+
+    <h1>Show file contents</h1>
+
+    <div class="example">
+        <div id="drop_zone">Drop files here</div>
+        <output id="list"></output>
+    </div>
+
+    <div id="debug">
+        <p id="p:debug"></p>
+    </div>
+
+    <div id="file_contents"></div>
+
+
+    <script>
+        // Check for the various File API support.
+
+        if (window.File && window.FileReader && window.FileList && window.Blob) {
+            //alert("Great success! All the File APIs are supported.");
+        } else {
+            alert('The File APIs are not fully supported in this browser.');
+        }
+    </script>
+
+
+    <script>
+        //All the file handling / parsing
+
+        function handleFileSelect(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+
+            // FileList object
+            var files = evt.dataTransfer.files;
+
+            // Loop over the files
+            var filePropAry = [];
+            for (var i = 0, f; f = files[i]; i++) {
+
+                    // Put the file details in a list
+                    filePropAry.push(fileDetails(f));
+
+                    // Show the current contents
+                    readFile(f);
+
+            } // End loop over files
+
+            // Populate the list with the output
+            document.getElementById('list').innerHTML = '<ul>' + filePropAry.join('') + '</ul>';
+
+        } // End function: handleFileSelect
+
+        function handleDragOver(evt) {
+                evt.stopPropagation();
+                evt.preventDefault();
+                evt.dataTransfer.dropEffect = 'copy';
+                // Explicitly show this is a copy.
+        } // End function: handleDragOver
+
+
+        // Setup the dnd listeners.
+        var dropZone = document.getElementById('drop_zone');
+        dropZone.addEventListener('dragover', handleDragOver, false);
+        dropZone.addEventListener('drop', handleFileSelect, false);
+
+    </script>
+
+    <script>
+
+        function fileDetails( f ) {
+            var nm = escape(f.name);
+            var typ = f.type || 'n/a';
+            var bts = f.size;
+            var ts = f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a';
+            var listItemHtml = '<li><strong>' +  nm
+                           + '</strong> (' + typ
+                           + ') - ' + bts + ' bytes, last modified: '
+                           + ts + '</li>';
+            return listItemHtml;
+        }
+
+        function readFile( file ) {
+            // make a reader, get file contents
+            var reader = new FileReader();
+            reader.onload = function(e){
+                // Get the text
+                var strRslt=e.target.result;
+                displayFileContents( strRslt )
+            }
+
+            reader.onerror = function(stuff) {
+                console.log("error", stuff)
+                console.log (stuff.getMessage())
+            }
+
+            reader.readAsText(file) //readAsdataURL
+        }
+
+        function displayFileContents( contentStr ) {
+            document.getElementById('file_contents').appendChild(document.createElement('pre')).innerHTML = contentStr;
+        }
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+<html>
+
+<head>
+</head>
+
+<body>
+    <div id="json_block1"></div>
+    <div id="json_block2"></div>
+    <div id="json_block3"></div>
+    
+    <script>
+    
+        /*
+        var J = { "h1": "name", "h2": "prop" , "h3": [1, 2, 3] };
+        */
+        
+        var dataArray = [
+                            ['h1', 'h2', 'h3'],
+                            [1, "x", 2],
+                            [3, 'y', 4]
+                        ];
+        
+        var J = {};
+        
+        // Get the items in the header; make JSON fieldnames
+        var header = dataArray[0];
+        
+        // Populate objects by ID
+        for (var i=1;i<dataArray.length;i++) {
+            var props = {};
+            for (var j=0;j<header.length;j++) {
+                props[header[j]] = dataArray[i][j];
+            }
+            J["row"+i] = props;
+        }
+        
+        var jStr = JSON.stringify( J, null, indent=2 );
+        document.getElementById('json_block1').appendChild(document.createElement('pre')).innerHTML = jStr;
+        
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,253 @@
+<html>
+
+<head>
+    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.css" />
+
+    <script src="personnel_data.js"></script>
+
+
+    <style>
+		body {
+			padding: 0;
+			margin: 0;
+		}
+		html, body, #map {
+			height: 100%;
+		}
+
+		.info {
+			padding: 6px 8px;
+			font: 14px/16px Arial, Helvetica, sans-serif;
+			background: white;
+			background: rgba(255,255,255,0.8);
+			box-shadow: 0 0 15px rgba(0,0,0,0.2);
+			border-radius: 5px;
+		}
+		.info h4 {
+			margin: 0 0 5px;
+			color: #777;
+		}
+
+		.legend {
+			text-align: left;
+			line-height: 18px;
+			color: #555;
+		}
+		.legend i {
+			width: 18px;
+			height: 18px;
+			float: left;
+			margin-right: 8px;
+			opacity: 0.7;
+		}
+	</style>
+
+</head>
+
+<body>
+
+    <div id="map"></div>
+
+    <div id="debug"></div>
+
+    <div id="file_contents"></div>
+
+    <script src="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.js"></script>
+
+    <script>
+
+        //var persData = readJsonFile('data/personnel_data.json');
+
+        function readJsonFile(file)
+        {
+            var jsonData;
+            $.getJSON(file, function(data){
+                //alert(data);
+                jsonData = data;
+            });
+            return jsonData;
+        }
+
+    </script>
+
+    <script>
+        // Map stuff
+
+        function styleCircFSO( val ) {
+            var circOptions = {
+                radius: getRadius( val ),
+                fillColor: getColorFSO( val ),
+                color: 'blue',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.6
+            };
+            return circOptions;
+        }
+
+        function styleCircLES( val ) {
+            var circOptions = {
+                radius: getRadius( val ),
+                fillColor: getColorLES( val ),
+                color: 'red',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.6
+            };
+            return circOptions;
+        }
+
+        function onEachFeature(feature, layer) {
+
+            layer.on({
+				mouseover: updateInfo,
+    			mouseout: resetInfo
+			});
+
+            var dispTxt = feature.properties.Post + ", "
+                        + feature.properties.Mission + " has : <br>"
+                        + (feature.properties["# FSO"] | 0) + " FSOs, <br>"
+                        + (feature.properties["# PD LES"] | 0) + " PD LESs";
+
+            if (feature.properties["IRO (Information Resource Officer)"] == "Yes")
+            {
+                dispTxt += ", <br>an IRO (Information Resource Officer)";
+            }
+            if (feature.properties["RELO (Regional English Language Officer)"] == "Yes")
+            {
+                dispTxt += ", <br>a RELO (Regional English Language Officer)";
+            }
+            if (feature.properties["REAC (Regional Educational Advisor Coordinator)"] == "Yes")
+            {
+                dispTxt += ", <br>and a REAC (Regional Educational Advisor Coordinator)";
+            }
+            layer.bindPopup(dispTxt);
+        }
+
+        /*
+        var minStr = prompt("what's the min");
+        var maxStr = prompt("what's the max");
+        var min = parseInt( minStr );
+        var max = parseInt( maxStr );
+        */
+        function getRadius(n) {
+            // Given an input in the space [0, 1]
+            // Scale the circle radius to be between Min and Max
+            var min = 3;
+            var max = 16;
+            return min + n*(max - min);
+        }
+
+        function getColorFSO(n) {
+            return n > 0.75 ? '#000080' :
+                   n > 0.5  ? '#323299' :
+                   n > 0.25 ? '#7f7fbf' :
+                   n > 0    ? '#cccce5' :
+                              '#e5e5f2';
+        }
+
+        function getColorLES(n) {
+            return n > 0.75 ? '#ff0000' :
+                   n > 0.5  ? '#ff4c4c' :
+                   n > 0.25 ? '#ff7f7f' :
+                   n > 0    ? '#ffb2b2' :
+                              '#ffe5e5';
+        }
+
+        function getMaxVals( fs ) {
+            // fs is the array of features from a geoJson object
+            var max = {"fso":0,"les":0};
+            for (var i=0;i<fs.length;i++)
+            {
+                var nFso = parseInt(fs[i].properties["# FSO"]);
+                if ( nFso > max.fso ) { max.fso = nFso;}
+                var nLes = parseInt(fs[i].properties["# PD LES"]);
+                if ( nLes > max.les ) { max.les = nLes;}
+            }
+            return max;
+        }
+
+    	function updateInfo(e) {
+			var layer = e.target;
+			info.update(layer.feature.properties);
+		}
+
+        function resetInfo(e) {
+			info.update();
+		}
+
+
+
+        var maxEmployees = getMaxVals( persData.features );
+
+        var FSO = L.geoJson( persData, {
+            pointToLayer: function (feature, latlng) {
+                var nFso = parseInt( feature.properties["# FSO"] );
+                var opts = styleCircFSO( nFso/maxEmployees.fso );
+                var circM = L.circleMarker(latlng, opts );
+                return circM;
+            },
+            onEachFeature: onEachFeature
+        } );
+
+        var LES = L.geoJson( persData, {
+            pointToLayer: function (feature, latlng) {
+                var nLes = parseInt( feature.properties["# PD LES"] );
+                var opts = styleCircLES( nLes/maxEmployees.les );
+                var circM = L.circleMarker(latlng, opts );
+                return circM;
+            },
+            onEachFeature: onEachFeature
+        } );
+
+        var dataLayers = {
+            "# of FSO": FSO,
+            "# of LES": LES,
+        };
+
+        //var map = L.map('map').setView([0, 0], 1);
+        var map = L.map('map', {
+			center: [34, 69],
+			zoom: 2,
+			minZoom: 2,
+			maxZoom: 8,
+			maxBounds: ([
+				[84, 180],
+				[-60, -180]
+			]),
+			layers: FSO
+        });
+
+        L.tileLayer('http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png', {
+            attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://cloudmade.com">CloudMade</a>',
+            maxZoom: 18
+        }).addTo(map);
+
+        L.control.layers( dataLayers ).addTo(map);
+
+        // instruct user to hover / click
+    	var info = L.control();
+
+		info.onAdd = function (map) {
+			this._div = L.DomUtil.create('div', 'info');
+			this.update();
+			return this._div;
+		};
+
+		info.update = function (props) {
+			this._div.innerHTML = (props ?
+				props.Post + '<br />' + props.Mission
+				: 'Click a dot for details');
+		};
+
+		info.addTo(map);
+
+        var persDataJsonStr = JSON.stringify( persData, null, indent=2 );
+        //document.getElementById('file_contents').appendChild(document.createElement('pre')).innerHTML = persDataJsonStr;
+
+    </script>
+
+
+</body>
+</html>
